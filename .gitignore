@@ -14,3 +14,6 @@ py-enve/
 
 # Cache / temp
 *.json
+
+# Precompiled headers
+*.gch
