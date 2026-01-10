@@ -1,0 +1,16 @@
+# Build output
+*.exe
+*.o
+*.obj
+
+# Python
+__pycache__/
+*.pyc
+venv/
+py-enve/
+
+# VS Code
+.vscode/
+
+# Cache / temp
+*.json
