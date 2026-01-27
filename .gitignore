@@ -8,6 +8,7 @@ __pycache__/
 *.pyc
 venv/
 py-enve/
+PY/PY_Data/
 
 # VS Code
 .vscode/
@@ -17,3 +18,6 @@ py-enve/
 
 # Precompiled headers
 *.gch
+
+# imgui .ini file
+*.ini

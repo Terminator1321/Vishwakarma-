@@ -145,6 +145,22 @@ void ImportPanel::setUpdate(bool fu)
     force_update = fu;
 }
 
+// Node implementation
+Node::Node(std::string node)
+{
+    this->node_name = node;
+}
+
+void Node::SpawnNode(ImDrawList *draw_list, ImVec2 origin, ImVec2 pan_offset)
+{
+    ImVec2 p1 = ImVec2(origin.x + pan_offset.x + 100,origin.y + pan_offset.y + 100);
+    ImVec2 p2 = ImVec2(p1.x + 100,p1.y + 50);
+    printf("Spawning node: %s\n", node_name.c_str());
+    draw_list->AddRectFilled(p1, p2, IM_COL32(100, 100, 250, 255));
+    draw_list->AddText(ImVec2(110, 110), IM_COL32(255, 255, 255, 255), node_name.c_str());
+    printf("Node %s spawned.\n", node_name.c_str());
+}
+
 // Graph class implementation
 GraphPanel::GraphPanel(int width, int height, const std::string title) : Windows(width, height, title) {}
 
@@ -177,6 +193,13 @@ void GraphPanel::addComponent()
             ImVec2(origin.x + canvas_size.x, origin.y + y),
             IM_COL32(60, 60, 60, 255));
     }
+    if (nodes.size() != 0)
+    {
+        for (auto &node : nodes)
+        {
+            node.SpawnNode(draw_list, origin, pan_offset);
+        }
+    }
     if (ImGui::IsWindowHovered() && ImGui::IsMouseDragging(ImGuiMouseButton_Middle))
     {
         ImVec2 delta = ImGui::GetIO().MouseDelta;
@@ -186,15 +209,21 @@ void GraphPanel::addComponent()
 
     ImGui::EndChild();
 }
+
 void GraphPanel::setPackages(const std::vector<std::string> &pkgs)
 {
     ImGui::Text("Setting packages in GraphPanel");
     packages = pkgs;
 }
+
 void GraphPanel::GraphContextMenu()
 {
+    static std::string s_pkg;
+    bool spawn_node = false;
+
     if (!ImGui::BeginPopup("GraphContextMenu"))
         return;
+
     if (ImGui::BeginMenu("Packages"))
     {
         if (packages.empty())
@@ -207,12 +236,14 @@ void GraphPanel::GraphContextMenu()
             {
                 if (ImGui::MenuItem(pkg.c_str()))
                 {
-                    printf("Selected package: %s\n", pkg.c_str());
+                    s_pkg = pkg;
+                    spawn_node = true;
                 }
             }
         }
         ImGui::EndMenu();
     }
+
     if (ImGui::MenuItem("Reset View"))
     {
         pan_offset = ImVec2(0.0f, 0.0f);
@@ -220,10 +251,9 @@ void GraphPanel::GraphContextMenu()
     }
 
     ImGui::EndPopup();
-}
-
-// TODO
-Node::Node(int width, int height, std::string title)
-{
-    
+    if (spawn_node && !s_pkg.empty())
+    {
+        Node node(s_pkg);
+        nodes.push_back(node);
+    }
 }
