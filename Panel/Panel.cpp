@@ -146,19 +146,16 @@ void ImportPanel::setUpdate(bool fu)
 }
 
 // Node implementation
-Node::Node(std::string node)
-{
-    this->node_name = node;
-}
+Node::Node(std::string node, ImVec2 size) : node_name(node), size(size) {}
 
 void Node::SpawnNode(ImDrawList *draw_list, ImVec2 origin, ImVec2 pan_offset)
 {
-    ImVec2 p1 = ImVec2(origin.x + pan_offset.x + 100,origin.y + pan_offset.y + 100);
-    ImVec2 p2 = ImVec2(p1.x + 100,p1.y + 50);
-    printf("Spawning node: %s\n", node_name.c_str());
+    ImVec2 p1 = ImVec2(origin.x + pan_offset.x + 100, origin.y + pan_offset.y + 100);
+    ImVec2 p2 = ImVec2(p1.x + this->size.x, p1.y + this->size.y);
+    // printf("Spawning node: %s\n", node_name.c_str());
     draw_list->AddRectFilled(p1, p2, IM_COL32(100, 100, 250, 255));
     draw_list->AddText(ImVec2(110, 110), IM_COL32(255, 255, 255, 255), node_name.c_str());
-    printf("Node %s spawned.\n", node_name.c_str());
+    // printf("Node %s spawned.\n", node_name.c_str());
 }
 
 // Graph class implementation
@@ -180,24 +177,27 @@ void GraphPanel::addComponent()
     const float GRID_SIZE = 40.0f;
     for (float x = fmodf(pan_offset.x, GRID_SIZE); x < canvas_size.x; x += GRID_SIZE)
     {
-        draw_list->AddLine(
-            ImVec2(origin.x + x, origin.y),
-            ImVec2(origin.x + x, origin.y + canvas_size.y),
-            IM_COL32(60, 60, 60, 255));
+        draw_list->AddLine(ImVec2(origin.x + x, origin.y), ImVec2(origin.x + x, origin.y + canvas_size.y), IM_COL32(60, 60, 60, 255));
     }
 
     for (float y = fmodf(pan_offset.y, GRID_SIZE); y < canvas_size.y; y += GRID_SIZE)
     {
-        draw_list->AddLine(
-            ImVec2(origin.x, origin.y + y),
-            ImVec2(origin.x + canvas_size.x, origin.y + y),
-            IM_COL32(60, 60, 60, 255));
+        draw_list->AddLine(ImVec2(origin.x, origin.y + y), ImVec2(origin.x + canvas_size.x, origin.y + y), IM_COL32(60, 60, 60, 255));
     }
+
+    if (nodes.size() != lastUpdatedNodesSize)
+    {
+        ImVec2 mouse = ImGui::GetMousePos();
+        ImVec2 local_pos = ImVec2(mouse.x - origin.x - pan_offset.x, mouse.y - origin.y - pan_offset.y);
+        node_positions.push_back(local_pos);
+        lastUpdatedNodesSize = nodes.size();
+    }
+
     if (nodes.size() != 0)
     {
-        for (auto &node : nodes)
+        for (int i = 0; i < nodes.size(); i++)
         {
-            node.SpawnNode(draw_list, origin, pan_offset);
+            nodes[i].SpawnNode(draw_list, node_positions[i], pan_offset);
         }
     }
     if (ImGui::IsWindowHovered() && ImGui::IsMouseDragging(ImGuiMouseButton_Middle))
@@ -253,7 +253,7 @@ void GraphPanel::GraphContextMenu()
     ImGui::EndPopup();
     if (spawn_node && !s_pkg.empty())
     {
-        Node node(s_pkg);
+        Node node(s_pkg, ImVec2(100.0f, 50.0f));
         nodes.push_back(node);
     }
 }

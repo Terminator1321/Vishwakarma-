@@ -39,9 +39,12 @@ class ImportPanel : public Windows
 class Node {
     private:
         std::string node_name = "default node";
+        ImVec2 size = ImVec2(100.0f, 50.0f);
+        bool isCreartedNewly = true;
     public:
-        Node(std::string node);
+        Node(std::string node, ImVec2 size);
         void SpawnNode(ImDrawList* draw_list, ImVec2 origin, ImVec2 pan_offset);
+        // void calculateSize();
 };
 class GraphPanel : public Windows
 {
@@ -50,6 +53,8 @@ class GraphPanel : public Windows
         float zoom_level = 1.0f;
         std::vector<std::string> packages;
         std::vector<Node> nodes;
+        std::vector<ImVec2> node_positions;
+        int lastUpdatedNodesSize = 0;
     public:
         GraphPanel(int width, int height, const std::string title);
         void addComponent() override;
