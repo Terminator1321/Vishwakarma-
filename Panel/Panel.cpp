@@ -1,5 +1,5 @@
 #include "Panel.hpp"
-
+#pragma region Windows Implementation
 // Base window runner to centralize ImGui Begin/End logic.
 void Windows::run()
 {
@@ -8,7 +8,9 @@ void Windows::run()
     addComponent();
     ImGui::End();
 }
+#pragma endregion0
 
+#pragma region Terminal Implementations
 // Terminal class implementation
 Terminal::Terminal(int width, int height, const std::string title) : Windows(width, height, title) {}
 
@@ -32,9 +34,7 @@ void Terminal::exec_cmd(const std::string &cmd)
 
 void Terminal::run_pip_async(const std::string &cmd)
 {
-    std::thread([this, cmd]()
-                { Terminal::exec_cmd("python -m " + cmd); })
-        .detach();
+    std::thread([this, cmd](){ Terminal::exec_cmd("python -m " + cmd); }).detach();
 }
 
 void Terminal::addComponent()
@@ -83,7 +83,9 @@ void Terminal::addComponent()
     ImGui::EndChild();
     ImGui::Separator();
 }
+#pragma endregion
 
+#pragma region Import Implementations
 // ImportPanel class implementation
 ImportPanel::ImportPanel(int width, int height, const std::string title) : Windows(width, height, title) {}
 
@@ -144,20 +146,29 @@ void ImportPanel::setUpdate(bool fu)
 {
     force_update = fu;
 }
+#pragma endregion
 
+#pragma region Node Implementation
 // Node implementation
 Node::Node(std::string node, ImVec2 size) : node_name(node), size(size) {}
 
-void Node::SpawnNode(ImDrawList *draw_list, ImVec2 origin, ImVec2 pan_offset)
+void Node::SpawnNode( ImDrawList* draw_list, ImVec2 canvas_origin, ImVec2 local_pos, ImVec2 pan_offset)
 {
-    ImVec2 p1 = ImVec2(origin.x + pan_offset.x + 100, origin.y + pan_offset.y + 100);
-    ImVec2 p2 = ImVec2(p1.x + this->size.x, p1.y + this->size.y);
-    // printf("Spawning node: %s\n", node_name.c_str());
-    draw_list->AddRectFilled(p1, p2, IM_COL32(100, 100, 250, 255));
-    draw_list->AddText(ImVec2(110, 110), IM_COL32(255, 255, 255, 255), node_name.c_str());
-    // printf("Node %s spawned.\n", node_name.c_str());
+    ImVec2 p1(canvas_origin.x + local_pos.x + pan_offset.x,canvas_origin.y + local_pos.y + pan_offset.y);
+    ImVec2 text_size = ImGui::CalcTextSize(node_name.c_str());
+
+    float width  = std::max(size.x, text_size.x + padding * 2.0f);
+    float height = std::max(size.y, text_size.y + padding * 2.0f);
+
+    ImVec2 p2(p1.x + width, p1.y + height);
+    draw_list->AddRectFilled(p1, p2, IM_COL32(100, 100, 250, 255), 6.0f);
+
+    draw_list->AddText(ImVec2(p1.x + padding, p1.y + padding),IM_COL32(255, 255, 255, 255),node_name.c_str());
 }
 
+#pragma endregion
+
+#pragma region Graph Implementations
 // Graph class implementation
 GraphPanel::GraphPanel(int width, int height, const std::string title) : Windows(width, height, title) {}
 
@@ -188,7 +199,8 @@ void GraphPanel::addComponent()
     if (nodes.size() != lastUpdatedNodesSize)
     {
         ImVec2 mouse = ImGui::GetMousePos();
-        ImVec2 local_pos = ImVec2(mouse.x - origin.x - pan_offset.x, mouse.y - origin.y - pan_offset.y);
+        ImVec2 _origin = ImGui::GetWindowPos();
+        ImVec2 local_pos = ImVec2(mouse.x - _origin.x - pan_offset.x, mouse.y - _origin.y - pan_offset.y);
         node_positions.push_back(local_pos);
         lastUpdatedNodesSize = nodes.size();
     }
@@ -197,7 +209,7 @@ void GraphPanel::addComponent()
     {
         for (int i = 0; i < nodes.size(); i++)
         {
-            nodes[i].SpawnNode(draw_list, node_positions[i], pan_offset);
+            nodes[i].SpawnNode(draw_list, origin, node_positions[i], pan_offset);
         }
     }
     if (ImGui::IsWindowHovered() && ImGui::IsMouseDragging(ImGuiMouseButton_Middle))
@@ -257,3 +269,4 @@ void GraphPanel::GraphContextMenu()
         nodes.push_back(node);
     }
 }
+#pragma endregion

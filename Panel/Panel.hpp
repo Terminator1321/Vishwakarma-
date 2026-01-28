@@ -40,10 +40,10 @@ class Node {
     private:
         std::string node_name = "default node";
         ImVec2 size = ImVec2(100.0f, 50.0f);
-        bool isCreartedNewly = true;
+        float padding = 10.0f;
     public:
         Node(std::string node, ImVec2 size);
-        void SpawnNode(ImDrawList* draw_list, ImVec2 origin, ImVec2 pan_offset);
+        void SpawnNode( ImDrawList* draw_list, ImVec2 canvas_origin, ImVec2 local_pos, ImVec2 pan_offset);
         // void calculateSize();
 };
 class GraphPanel : public Windows
