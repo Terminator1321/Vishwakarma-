@@ -20,9 +20,49 @@ private:
     Package packageManager;
     bool isLoaded = false;
     bool requested = false;
+    void terminal_messages()
+    {
+        int buffer_size = 240;
+        for(int i = 0; i < buffer_size; i++)
+        {
+            // its looks like a mess but its to ensure that all messages are consumed without blocking
+            // later we can optimize this by using condition variables or other signaling mechanisms
+            if (!packageManager.errors.empty())
+            {
+                terminal.AddErrorMessage(packageManager.errors.front());
+                packageManager.errors.pop();
+            }
+            if (!packageManager.warnings.empty())
+            {
+                terminal.AddWarningMessage(packageManager.warnings.front());
+                packageManager.warnings.pop();
+            }
+            if (!packageManager.outputs.empty())
+            {
+                terminal.AddOutputMessage(packageManager.outputs.front());
+                packageManager.outputs.pop();
+            }
+            if(!import_graph_panel.errors.empty())
+            {
+                terminal.AddErrorMessage(import_graph_panel.errors.front());
+                import_graph_panel.errors.pop();
+            }
+            if(!import_graph_panel.warnings.empty())
+            {
+                terminal.AddWarningMessage(import_graph_panel.warnings.front());
+                import_graph_panel.warnings.pop();
+            }
+            if(!import_graph_panel.outputs.empty())
+            {
+                terminal.AddOutputMessage(import_graph_panel.outputs.front());
+                import_graph_panel.outputs.pop();
+            }
+        }
+        
+    }
 
 public:
-    PanelManager() : terminal(600, 400, "Terminal"), import_panel(600, 400, "Import"), import_graph_panel(600, 400, "Import Graph"), packageManager(pythonruntime), runtime_graph_panel(600,400, "Runtime"){}
+    PanelManager() : terminal(600, 400, "Terminal"), import_panel(600, 400, "Import"), import_graph_panel(600, 400, "Import Graph","Import"), packageManager(pythonruntime), runtime_graph_panel(600, 400, "Runtime","Runtime") {}
     void run_panels()
     {
         terminal.run();
@@ -51,6 +91,7 @@ public:
             isLoaded = false;
             import_panel.setUpdate(false);
         }
+        terminal_messages();
     }
 };
 

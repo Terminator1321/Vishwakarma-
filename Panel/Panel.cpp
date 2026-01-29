@@ -45,6 +45,15 @@ void Terminal::addComponent()
 
     for (const auto &line : Terminal::command_history)
     {
+        if(line.rfind("[ERROR]", 0) == 0)
+        {
+            ImGui::TextColored(terminal_color.t_red(), "%s", line.c_str());
+        }
+        else if(line.rfind("[WARNING]", 0) == 0)
+        {
+            ImGui::TextColored(terminal_color.t_yellow(), "%s", line.c_str());
+        }
+        else
         ImGui::TextUnformatted(line.c_str());
     }
 
@@ -84,6 +93,20 @@ void Terminal::addComponent()
     }
     ImGui::EndChild();
     ImGui::Separator();
+}
+void Terminal::AddErrorMessage(const std::string &msg)
+{
+    command_history.push_back("[ERROR] " + msg);
+}
+
+void Terminal::AddOutputMessage(const std::string &msg)
+{
+    command_history.push_back(msg);
+}
+
+void Terminal::AddWarningMessage(const std::string &msg)
+{
+    command_history.push_back("[WARNING] " + msg);
 }
 #pragma endregion
 
@@ -170,14 +193,14 @@ void Node::SpawnNode(ImDrawList *draw_list, ImVec2 canvas_origin, ImVec2 local_p
     {
         selected = true;
     }
-    if(!ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+    if (!ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
     {
         selected = false;
     }
-    draw_list->AddRectFilled(p1, p2, theme_color.blue(), 6.0f);
+    draw_list->AddRectFilled(p1, p2, (isSPECIALNODE ? theme_color.red() : theme_color.blue()), 6.0f);
     if (selected)
     {
-        draw_list->AddRect(p1, p2, theme_color.yellow(), 6.0f,0,3.0f);
+        draw_list->AddRect(p1, p2, (isSPECIALNODE ? theme_color.green() : theme_color.yellow()), 6.0f, 0, 8.0f);
     }
 
     draw_list->AddText(ImVec2(p1.x + padding, p1.y + padding), theme_color.white(), node_name.c_str());
@@ -187,7 +210,20 @@ void Node::SpawnNode(ImDrawList *draw_list, ImVec2 canvas_origin, ImVec2 local_p
 
 #pragma region Graph Implementations
 // Graph class implementation
-GraphPanel::GraphPanel(int width, int height, const std::string title) : Windows(width, height, title) {}
+GraphPanel::GraphPanel(int width, int height, const std::string title, const std::string paneltype) : Windows(width, height, title), PANELTYPE(paneltype)
+{
+    if (PANELTYPE == "Import")
+    {
+        Node import_node("Import Node", ImVec2(100.0f, 50.0f));
+        import_node.setSPECIALNODE(true);
+        nodes.push_back(import_node);
+        node_positions.push_back(ImVec2(50.0f, 50.0f));
+    }
+    if (PANELTYPE == "Runtime")
+    {
+        // TODO: Add runtime specific nodes
+    }
+}
 
 // helper function for node positioning
 ImVec2 GetPositionWithMouseInput(ImVec2 pan_offset)
@@ -297,10 +333,24 @@ void GraphPanel::GraphContextMenu()
     }
 
     ImGui::EndPopup();
-    if (spawn_node && !s_pkg.empty())
+    if (spawn_node && !s_pkg.empty() && !isNodeRepeated(s_pkg))
     {
         Node node(s_pkg, ImVec2(100.0f, 50.0f));
         nodes.push_back(node);
     }
+}
+bool GraphPanel::isNodeRepeated(const std::string &node_name)
+{
+    if (nodes.empty())
+        return false;
+    for (const auto &node : nodes)
+    {
+        if (node.getName() == node_name)
+        {
+            warnings.push("Node " + node_name + " already exists! cannot add duplicate nodes.");
+            return true;
+        }
+    }
+    return false;
 }
 #pragma endregion
