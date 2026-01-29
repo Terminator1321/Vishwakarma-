@@ -1,0 +1,31 @@
+#include "color.hpp"
+
+ImU32 color::white()
+{
+    return IM_COL32(255,255,255,255);
+}
+
+ImU32 color::black()
+{
+    return IM_COL32(0,0,0,255);
+}
+
+ImU32 color::green()
+{
+    return IM_COL32(0,255,0,255);
+}
+
+ImU32 color::red()
+{
+    return IM_COL32(255,0,0,255);
+}
+
+ImU32 color::blue()
+{
+    return IM_COL32(0,0,255,255);
+}
+
+ImU32 color::yellow()
+{
+    return IM_COL32(255,255,0,255);
+}

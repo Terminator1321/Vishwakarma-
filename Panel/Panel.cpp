@@ -34,7 +34,9 @@ void Terminal::exec_cmd(const std::string &cmd)
 
 void Terminal::run_pip_async(const std::string &cmd)
 {
-    std::thread([this, cmd](){ Terminal::exec_cmd("python -m " + cmd); }).detach();
+    std::thread([this, cmd]()
+                { Terminal::exec_cmd("python -m " + cmd); })
+        .detach();
 }
 
 void Terminal::addComponent()
@@ -66,7 +68,7 @@ void Terminal::addComponent()
         }
         else if (cmd == "pkg")
         {
-            Terminal::command_history.push_back("Use Packages panel");
+            Terminal::command_history.push_back("Use Imports panel");
         }
         else if (cmd.rfind("pip ", 0) == 0)
         {
@@ -152,18 +154,33 @@ void ImportPanel::setUpdate(bool fu)
 // Node implementation
 Node::Node(std::string node, ImVec2 size) : node_name(node), size(size) {}
 
-void Node::SpawnNode( ImDrawList* draw_list, ImVec2 canvas_origin, ImVec2 local_pos, ImVec2 pan_offset)
+void Node::SpawnNode(ImDrawList *draw_list, ImVec2 canvas_origin, ImVec2 local_pos, ImVec2 pan_offset)
 {
-    ImVec2 p1(canvas_origin.x + local_pos.x + pan_offset.x,canvas_origin.y + local_pos.y + pan_offset.y);
+    ImVec2 p1(canvas_origin.x + local_pos.x + pan_offset.x, canvas_origin.y + local_pos.y + pan_offset.y);
     ImVec2 text_size = ImGui::CalcTextSize(node_name.c_str());
 
-    float width  = std::max(size.x, text_size.x + padding * 2.0f);
+    float width = std::max(size.x, text_size.x + padding * 2.0f);
     float height = std::max(size.y, text_size.y + padding * 2.0f);
 
     ImVec2 p2(p1.x + width, p1.y + height);
-    draw_list->AddRectFilled(p1, p2, IM_COL32(100, 100, 250, 255), 6.0f);
+    ImGui::SetCursorScreenPos(p1);
+    ImGui::InvisibleButton(node_name.c_str(), ImVec2(width, height));
+    active = ImGui::IsItemActive();
+    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && active)
+    {
+        selected = true;
+    }
+    if(!ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+    {
+        selected = false;
+    }
+    draw_list->AddRectFilled(p1, p2, theme_color.blue(), 6.0f);
+    if (selected)
+    {
+        draw_list->AddRect(p1, p2, theme_color.yellow(), 6.0f,0,3.0f);
+    }
 
-    draw_list->AddText(ImVec2(p1.x + padding, p1.y + padding),IM_COL32(255, 255, 255, 255),node_name.c_str());
+    draw_list->AddText(ImVec2(p1.x + padding, p1.y + padding), theme_color.white(), node_name.c_str());
 }
 
 #pragma endregion
@@ -171,6 +188,15 @@ void Node::SpawnNode( ImDrawList* draw_list, ImVec2 canvas_origin, ImVec2 local_
 #pragma region Graph Implementations
 // Graph class implementation
 GraphPanel::GraphPanel(int width, int height, const std::string title) : Windows(width, height, title) {}
+
+// helper function for node positioning
+ImVec2 GetPositionWithMouseInput(ImVec2 pan_offset)
+{
+    ImVec2 mouse = ImGui::GetMousePos();
+    ImVec2 _origin = ImGui::GetWindowPos();
+    ImVec2 local_pos = ImVec2(mouse.x - _origin.x - pan_offset.x, mouse.y - _origin.y - pan_offset.y);
+    return local_pos;
+}
 
 void GraphPanel::addComponent()
 {
@@ -198,9 +224,7 @@ void GraphPanel::addComponent()
 
     if (nodes.size() != lastUpdatedNodesSize)
     {
-        ImVec2 mouse = ImGui::GetMousePos();
-        ImVec2 _origin = ImGui::GetWindowPos();
-        ImVec2 local_pos = ImVec2(mouse.x - _origin.x - pan_offset.x, mouse.y - _origin.y - pan_offset.y);
+        ImVec2 local_pos = GetPositionWithMouseInput(pan_offset);
         node_positions.push_back(local_pos);
         lastUpdatedNodesSize = nodes.size();
     }
@@ -209,7 +233,17 @@ void GraphPanel::addComponent()
     {
         for (int i = 0; i < nodes.size(); i++)
         {
-            nodes[i].SpawnNode(draw_list, origin, node_positions[i], pan_offset);
+            if (nodes[i].isSelected() && ImGui::IsMouseDragging(ImGuiMouseButton_Left) && nodes[i].isActive())
+            {
+                ImVec2 delta = ImGui::GetIO().MouseDelta;
+                node_positions[i].x += delta.x;
+                node_positions[i].y += delta.y;
+                nodes[i].SpawnNode(draw_list, origin, node_positions[i], pan_offset);
+            }
+            else
+            {
+                nodes[i].SpawnNode(draw_list, origin, node_positions[i], pan_offset);
+            }
         }
     }
     if (ImGui::IsWindowHovered() && ImGui::IsMouseDragging(ImGuiMouseButton_Middle))

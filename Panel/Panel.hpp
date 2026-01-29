@@ -1,6 +1,7 @@
 #ifndef PANEL_HPP
 #define PANEL_HPP
 #include "helper_functions/Windows.hpp"
+#include "GUIThemeHelper/color.hpp"
 #include <pybind11/embed.h>
 #include <pybind11/stl.h>
 #include <vector>
@@ -41,10 +42,17 @@ class Node {
         std::string node_name = "default node";
         ImVec2 size = ImVec2(100.0f, 50.0f);
         float padding = 10.0f;
+        bool selected = false;
+        bool active = false;
+        color theme_color;
     public:
         Node(std::string node, ImVec2 size);
-        void SpawnNode( ImDrawList* draw_list, ImVec2 canvas_origin, ImVec2 local_pos, ImVec2 pan_offset);
+        void SpawnNode(ImDrawList* draw_list, ImVec2 canvas_origin, ImVec2 local_pos, ImVec2 pan_offset);
         // void calculateSize();
+        bool isSelected() const { return selected; }
+        void setSelected(bool sel) { selected = sel; }
+        std::string getName() const { return node_name; }
+        bool isActive() const { return active; }
 };
 class GraphPanel : public Windows
 {
