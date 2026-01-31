@@ -1,7 +1,7 @@
 #ifndef PANEL_HPP
 #define PANEL_HPP
 #include "helper_functions/Windows.hpp"
-#include "GUIThemeHelper/color.hpp"
+#include "GUIThemeHelper/theme.hpp"
 #include <pybind11/embed.h>
 #include <pybind11/stl.h>
 #include <vector>
@@ -10,12 +10,13 @@
 #include <array>
 #include <thread>
 #include <queue>
+#include "Node/Node.hpp"
 
 class Terminal : public Windows
 {
     private:
         color terminal_color;
-
+        Fonts font_helper;
     protected:
         std::vector<std::string> command_history;
         char command[512] = "";
@@ -44,26 +45,6 @@ class ImportPanel : public Windows
         void setUpdate(bool fu);
 };
 
-class Node {
-    private:
-        std::string node_name = "default node";
-        ImVec2 size = ImVec2(100.0f, 50.0f);
-        float padding = 10.0f;
-        bool selected = false;
-        bool active = false;
-        color theme_color;
-        bool isSPECIALNODE = false;
-        int32_t id;
-    public:
-        Node(std::string node, ImVec2 size);
-        void SpawnNode(ImDrawList* draw_list, ImVec2 canvas_origin, ImVec2 local_pos, ImVec2 pan_offset);
-        // void calculateSize();
-        bool isSelected() const { return selected; }
-        void setSelected(bool sel) { selected = sel; }
-        std::string getName() const { return node_name; }
-        bool isActive() const { return active; }
-        void setSPECIALNODE(bool special) { isSPECIALNODE = special; }
-};
 class GraphPanel : public Windows
 {
     private:

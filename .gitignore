@@ -3,12 +3,13 @@
 *.o
 *.obj
 
-# Python
+# unecessasry files folder
 __pycache__/
 *.pyc
 venv/
 py-enve/
 PY/PY_Data/
+Panel/GUIThemeHelper/Fonts/not using
 
 # VS Code
 .vscode/

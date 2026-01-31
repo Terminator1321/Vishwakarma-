@@ -45,16 +45,25 @@ void Terminal::addComponent()
 
     for (const auto &line : Terminal::command_history)
     {
-        if(line.rfind("[ERROR]", 0) == 0)
+        ImGui::PushFont(font_helper.getMomoFont());
+
+        if (line.rfind("[ERROR]", 0) == 0)
         {
-            ImGui::TextColored(terminal_color.t_red(), "%s", line.c_str());
+            ImGui::PushStyleColor(ImGuiCol_Text, terminal_color.t_red());
         }
-        else if(line.rfind("[WARNING]", 0) == 0)
+        else if (line.rfind("[WARNING]", 0) == 0)
         {
-            ImGui::TextColored(terminal_color.t_yellow(), "%s", line.c_str());
+            ImGui::PushStyleColor(ImGuiCol_Text, terminal_color.t_yellow());
         }
         else
+        {
+            ImGui::PushStyleColor(ImGuiCol_Text, terminal_color.t_white());
+        }
+
         ImGui::TextUnformatted(line.c_str());
+
+        ImGui::PopStyleColor();
+        ImGui::PopFont();
     }
 
     if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
@@ -62,7 +71,12 @@ void Terminal::addComponent()
         ImGui::SetScrollHereY(1.0f);
     }
 
-    if (ImGui::InputText("##terminal", Terminal::command, IM_ARRAYSIZE(Terminal::command), ImGuiInputTextFlags_EnterReturnsTrue))
+    ImGui::EndChild();
+
+    ImGui::Separator();
+
+    ImGui::PushItemWidth(-1);
+    if (ImGui::InputText("##terminal_input", Terminal::command, IM_ARRAYSIZE(Terminal::command), ImGuiInputTextFlags_EnterReturnsTrue))
     {
         std::string cmd = Terminal::command;
         Terminal::command_history.push_back("> " + cmd);
@@ -79,21 +93,20 @@ void Terminal::addComponent()
         {
             Terminal::command_history.push_back("Use Imports panel");
         }
-        else if (cmd.rfind("pip ", 0) == 0)
+        else if (cmd.rfind("pip", 0) == 0)
         {
             Terminal::command_history.push_back("Running pip command asynchronously...");
             Terminal::run_pip_async(cmd);
         }
         else
-        {
-            Terminal::command_history.push_back("Unknown command: " + cmd);
-        }
+            Terminal::command_history.push_back("[ERROR] Unknown command: " + cmd);
 
         Terminal::command[0] = '\0';
+        ImGui::SetKeyboardFocusHere(-1);
     }
-    ImGui::EndChild();
-    ImGui::Separator();
+    ImGui::PopItemWidth();
 }
+
 void Terminal::AddErrorMessage(const std::string &msg)
 {
     command_history.push_back("[ERROR] " + msg);
@@ -173,41 +186,6 @@ void ImportPanel::setUpdate(bool fu)
 }
 #pragma endregion
 
-#pragma region Node Implementation
-// Node implementation
-Node::Node(std::string node, ImVec2 size) : node_name(node), size(size) {}
-
-void Node::SpawnNode(ImDrawList *draw_list, ImVec2 canvas_origin, ImVec2 local_pos, ImVec2 pan_offset)
-{
-    ImVec2 p1(canvas_origin.x + local_pos.x + pan_offset.x, canvas_origin.y + local_pos.y + pan_offset.y);
-    ImVec2 text_size = ImGui::CalcTextSize(node_name.c_str());
-
-    float width = std::max(size.x, text_size.x + padding * 2.0f);
-    float height = std::max(size.y, text_size.y + padding * 2.0f);
-
-    ImVec2 p2(p1.x + width, p1.y + height);
-    ImGui::SetCursorScreenPos(p1);
-    ImGui::InvisibleButton(node_name.c_str(), ImVec2(width, height));
-    active = ImGui::IsItemActive();
-    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && active)
-    {
-        selected = true;
-    }
-    if (!ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
-    {
-        selected = false;
-    }
-    draw_list->AddRectFilled(p1, p2, (isSPECIALNODE ? theme_color.red() : theme_color.blue()), 6.0f);
-    if (selected)
-    {
-        draw_list->AddRect(p1, p2, (isSPECIALNODE ? theme_color.green() : theme_color.yellow()), 6.0f, 0, 8.0f);
-    }
-
-    draw_list->AddText(ImVec2(p1.x + padding, p1.y + padding), theme_color.white(), node_name.c_str());
-}
-
-#pragma endregion
-
 #pragma region Graph Implementations
 // Graph class implementation
 GraphPanel::GraphPanel(int width, int height, const std::string title, const std::string paneltype) : Windows(width, height, title), PANELTYPE(paneltype)
@@ -279,6 +257,18 @@ void GraphPanel::addComponent()
             else
             {
                 nodes[i].SpawnNode(draw_list, origin, node_positions[i], pan_offset);
+            }
+            if (nodes[i].isSelected() && ImGui::IsKeyPressed(ImGuiKey_Delete))
+            {
+                if (nodes[i].isSPECIAL())
+                {
+                    warnings.push("Cannot delete special node: " + nodes[i].getName());
+                    break;
+                }
+                nodes.erase(nodes.begin() + i);
+                node_positions.erase(node_positions.begin() + i);
+                lastUpdatedNodesSize = nodes.size();
+                break;
             }
         }
     }

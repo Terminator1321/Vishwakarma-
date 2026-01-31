@@ -14,8 +14,9 @@ g++ main.cpp `
  imgui/backends/imgui_impl_opengl3.cpp `
  bridge/runtime/PythonRuntime.cpp `
  bridge/Package.cpp `
- Panel/GUIThemeHelper/color.cpp `
+ Panel/GUIThemeHelper/theme.cpp `
  Panel/helper_functions/Windows.cpp `
+ Panel\Node\Node.cpp `
  Panel/Panel.cpp `
  -LC:/Users/Rohan/AppData/Local/Programs/Python/Python313/libs `
  -Lglfw/lib `
