@@ -22,3 +22,6 @@ Panel/GUIThemeHelper/Fonts/not using
 
 # imgui .ini file
 *.ini
+
+# unecessary files
+commands.txt
