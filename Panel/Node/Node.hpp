@@ -4,6 +4,18 @@
 #include"../GUIThemeHelper/theme.hpp"
 #include <string>
 #include <cstdint>
+#include <cmath>
+class link{
+    private:
+        color theme_color;
+        ImVec2 position;
+    
+    public:
+        link(ImVec2 pos);
+        void DrawLink(ImDrawList *draw_list, ImVec2 p1);
+        bool IsPinHovered(ImVec2 pin_pos, float radius);
+};
+
 class Node {
     private:
         std::string node_name = "default node";
@@ -14,16 +26,17 @@ class Node {
         color theme_color;
         bool isSPECIALNODE = false;
         int32_t id;
+        link *out_link;
     public:
         Node(std::string node, ImVec2 size);
         void SpawnNode(ImDrawList* draw_list, ImVec2 canvas_origin, ImVec2 local_pos, ImVec2 pan_offset);
-        // void calculateSize();
         bool isSelected() const { return selected; }
         void setSelected(bool sel) { selected = sel; }
         std::string getName() const { return node_name; }
         bool isActive() const { return active; }
         void setSPECIALNODE(bool special) { isSPECIALNODE = special; }
         bool isSPECIAL() const { return isSPECIALNODE; }
+        void InputsAOutputsPinHolders(ImDrawList *draw_list, ImVec2 out,ImVec2 in, color theme_color, bool isSpecial, link *outlink);
 };
 
 #endif
