@@ -11,6 +11,7 @@ class link
 private:
     color theme_color;
     ImVec2 position;
+    ImVec2 end_position;
     bool connected = false;
 public:
     link(ImVec2 pos);
@@ -19,6 +20,8 @@ public:
     bool isConnected() const { return connected; }
     void setConnected(bool conn) { connected = conn; }
     void UpdatePosition(ImVec2 pos) { position = pos; }
+    void UpdateEndPosition(ImVec2 pos) { end_position = pos; }
+    ImVec2 getEndPosition() const { return end_position; }
 };
 
 class Pins
@@ -26,14 +29,19 @@ class Pins
     private:
         color theme_color;
         ImVec2 position;
-        ImDrawList *current_draw_list;
         link *_link;
+        bool isBegienDrag = false;
+        float radius = 5.0f;
+        Pins *connected_pin = nullptr;
     public:
-        Pins(ImVec2 pos, ImDrawList *draw_list);
+        Pins(ImVec2 pos, float radius);
         void UpdatePosition(ImVec2 pos) { position = pos; }
         void DrawPin(ImDrawList *draw_list, ImVec2 p1,ImVec2 p2);
         bool IsPinHovered(ImVec2 pin_pos, float radius);
-        void OnMouseDragBeginOverEvent();
+        void OnMouseDragBeginOverEvent(ImDrawList *draw_list);
+        void ConnectTOClosestSTypePin(ImDrawList* draw_list, std::vector<ImVec2>& pos, std::vector<Pins>& pins, ImVec2 mousePosInWindow);
+        void SetConnectionPin(Pins* pin) { connected_pin = pin; }
+        Pins* GetConnectionPin() const { return connected_pin; }
 };
 
 class Node
@@ -58,7 +66,6 @@ class Node
         int outputpins = 1;
         NodeData input_data;
         NodeData output_data;
-        ImDrawList *current_draw_list;
     public:
         Node(std::string node, ImVec2 size);
         void SpawnNode(ImDrawList *draw_list, ImVec2 canvas_origin, ImVec2 local_pos, ImVec2 pan_offset);
@@ -68,7 +75,6 @@ class Node
         bool isActive() const { return active; }
         void setSPECIALNODE(bool special) { isSPECIALNODE = special; }
         bool isSPECIAL() const { return isSPECIALNODE; }
-        
 };
 
 #endif
