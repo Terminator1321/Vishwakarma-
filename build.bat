@@ -28,6 +28,7 @@ bridge/Package.cpp ^
 Panel/GUIThemeHelper/theme.cpp ^
 Panel/helper_functions/Windows.cpp ^
 Panel/Node/Node.cpp ^
+Panel/helper_functions/EWL.cpp ^
 Panel/Panel.cpp ^
 -L%PYTHON%/libs ^
 -L%GLFW%/lib ^

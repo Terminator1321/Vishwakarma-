@@ -10,13 +10,18 @@
 #include <array>
 #include <thread>
 #include <queue>
+#include <chrono>
+#include <iomanip>
+#include <sstream>
 #include "Node/Node.hpp"
+#include "helper_functions/EWL.hpp"
 
 class Terminal : public Windows
 {
     private:
         color terminal_color;
         Fonts font_helper;
+        size_t last_log_count = 0;
     protected:
         std::vector<std::string> command_history;
         char command[512] = "";
@@ -26,9 +31,7 @@ class Terminal : public Windows
     public:
         Terminal(int width, int height, const std::string title);
         void addComponent() override;
-        void AddErrorMessage(const std::string &msg);
-        void AddOutputMessage(const std::string &msg);
-        void AddWarningMessage(const std::string &msg);
+        void UpdateTerminal();
 };
 
 class ImportPanel : public Windows
@@ -48,7 +51,7 @@ class ImportPanel : public Windows
 class GraphPanel : public Windows
 {
     private:
-        std::string PANELTYPE;  
+        std::string PANELTYPE;
         ImVec2 pan_offset = ImVec2(0.0f, 0.0f);
         float zoom_level = 1.0f;
         std::vector<std::string> packages;
@@ -56,10 +59,12 @@ class GraphPanel : public Windows
         std::vector<ImVec2> node_positions;
         int lastUpdatedNodesSize = 0;
         bool isNodeRepeated(const std::string &node_name);
+
+        // Per-frame global pin lists, rebuilt each frame by addComponent()
+        std::vector<Pins *> all_input_pins;
+        std::vector<Pins *> all_output_pins;
+
     public:
-        std::queue<std::string> errors;
-        std::queue<std::string> warnings;
-        std::queue<std::string> outputs;
         GraphPanel(int width, int height, const std::string title, const std::string paneltype);
         void addComponent() override;
         void setPackages(const std::vector<std::string> &pkgs);

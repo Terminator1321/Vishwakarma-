@@ -13,7 +13,6 @@
 #include <queue>
 #include <inc/json.hpp>
 #include "runtime/PythonRuntime.hpp"
-
 class Package
 {
     public:
