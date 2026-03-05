@@ -4,6 +4,8 @@
 
 Node::Node(std::string node, ImVec2 size) : node_name(node), size(size)
 {
+    input_data.pins.reserve(inputpins);
+    output_data.pins.reserve(outputpins);
     for (int i = 0; i < inputpins; ++i)
     {
         ImVec2 pin_pos(0.0f, (size.y / (inputpins + 1)) * (i + 1));
@@ -16,6 +18,11 @@ Node::Node(std::string node, ImVec2 size) : node_name(node), size(size)
         output_data.pins.emplace_back(Pins(pin_pos, 7.0f, false));
         output_data.pin_names.push_back("Out " + std::to_string(i + 1));
     }
+    for (auto& pin : input_data.pins)
+        pin.SetOwner(this);
+
+    for (auto& pin : output_data.pins)
+        pin.SetOwner(this);
 }
 
 void Node::RegisterPins(std::vector<Pins *> &all_input_pins, std::vector<Pins *> &all_output_pins)
@@ -53,8 +60,6 @@ void Node::SpawnNode(ImDrawList *draw_list, ImVec2 canvas_origin, ImVec2 local_p
     {
         ImVec2 pin_pos(p1.x, p1.y + (height / (inputpins + 1)) * (i + 1));
         input_data.pins[i].DrawPin(draw_list, pin_pos, ImVec2(0, 0));
-        // ConnectTO must come BEFORE OnMouseDragBeginOverEvent so isBegienDrag
-        // is still true on the release frame when ConnectTO needs to read it.
         input_data.pins[i].ConnectTOClosestSTypePin(draw_list, all_output_pins);
         input_data.pins[i].OnMouseDragBeginOverEvent(draw_list);
     }
@@ -63,7 +68,6 @@ void Node::SpawnNode(ImDrawList *draw_list, ImVec2 canvas_origin, ImVec2 local_p
     {
         ImVec2 pin_pos(p1.x + width, p1.y + (height / (outputpins + 1)) * (i + 1));
         output_data.pins[i].DrawPin(draw_list, pin_pos, ImVec2(0, 0));
-        // Same order fix: ConnectTO before OnMouseDragBeginOverEvent
         output_data.pins[i].ConnectTOClosestSTypePin(draw_list, all_input_pins);
         output_data.pins[i].OnMouseDragBeginOverEvent(draw_list);
     }
@@ -115,21 +119,16 @@ bool Pins::IsPinHovered(ImVec2 pin_pos, float radius)
 
 void Pins::OnMouseDragBeginOverEvent(ImDrawList *draw_list)
 {
-    // Redraw persistent connection every frame
     if (_link && _link->isConnected() && connected_pin)
     {
         _link->UpdateEndPosition(connected_pin->GetPosition());
         _link->DrawLink(draw_list, _link->getEndPosition());
     }
 
-    // Start drag when clicking on a pin
     if (!isBegienDrag && IsPinHovered(position, radius) && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
     {
         isBegienDrag = true;
     }
-
-    // Draw in-progress drag line — also draw on release frame so there's no gap
-    // before ConnectTO fires. isBegienDrag is only reset inside ConnectTO now.
     if (isBegienDrag && (ImGui::IsMouseDragging(ImGuiMouseButton_Left) || ImGui::IsMouseReleased(ImGuiMouseButton_Left)))
     {
         _link->DrawLink(draw_list, ImGui::GetIO().MousePos);
@@ -160,9 +159,6 @@ void Pins::ConnectTOClosestSTypePin(ImDrawList *draw_list, std::vector<Pins *> &
         float dy = mousePos.y - pinPos.y;
         float distSq = dx * dx + dy * dy;
 
-        printf("Checking candidate pin %d at screen (%.1f, %.1f) vs mouse (%.1f, %.1f) distSq=%.1f threshold=%.1f\n",
-               i, pinPos.x, pinPos.y, mousePos.x, mousePos.y, distSq, 30.0f * 30.0f);
-
         if (distSq <= (30.0f * 30.0f))
         {
             printf(">> Connected to pin %d!\n", i);
@@ -178,5 +174,6 @@ void Pins::ConnectTOClosestSTypePin(ImDrawList *draw_list, std::vector<Pins *> &
     printf("No pin in range, drag cancelled.\n");
     isBegienDrag = false; 
 }
+
 
 #pragma endregion

@@ -55,23 +55,26 @@ std::vector<std::string> Package::consume_packages()
     return cached_packages;
 }
 
-void Package::import_module(const std::vector<std::string> &packages)
+void Package::import_module(const std::string &pkg)
 {
-    for (const auto &pkg : packages)
     {
+        std::lock_guard<std::mutex> lock(mtx);
         if (module_cache.find(pkg) != module_cache.end())
-            continue;
+            return;
+    }
 
-        try
-        {
-            py::module mod = py::module::import(pkg.c_str());
-            module_cache.emplace(pkg, mod);
-            outputs.push("Successfully imported package: " + pkg);
-        }
-        catch (const py::error_already_set &e)
-        {
-            std::lock_guard<std::mutex> lock(mtx);
-            errors.push("Failed to import package: " + pkg + "\nError: " + e.what());
-        }
+    try
+    {
+        py::gil_scoped_acquire acquire; 
+
+        py::module_ mod = py::module_::import(pkg.c_str());
+        
+        module_cache.emplace(pkg, std::move(mod));
+
+        printf("Successfully imported: %s\n", pkg.c_str());
+    }
+    catch (const py::error_already_set &e)
+    {
+        printf("Failed: %s\nError: %s\n", pkg.c_str(), e.what());
     }
 }

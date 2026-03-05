@@ -15,60 +15,66 @@
 #include <sstream>
 #include "Node/Node.hpp"
 #include "helper_functions/EWL.hpp"
+#include <unordered_set>
 
 class Terminal : public Windows
 {
-    private:
-        color terminal_color;
-        Fonts font_helper;
-        size_t last_log_count = 0;
-    protected:
-        std::vector<std::string> command_history;
-        char command[512] = "";
-        void exec_cmd(const std::string &cmd);
-        void run_pip_async(const std::string &cmd);
+private:
+    color terminal_color;
+    Fonts font_helper;
+    size_t last_log_count = 0;
 
-    public:
-        Terminal(int width, int height, const std::string title);
-        void addComponent() override;
-        void UpdateTerminal();
+protected:
+    std::vector<std::string> command_history;
+    char command[512] = "";
+    void exec_cmd(const std::string &cmd);
+    void run_pip_async(const std::string &cmd);
+
+public:
+    Terminal(int width, int height, const std::string title);
+    void addComponent() override;
+    void UpdateTerminal();
 };
 
 class ImportPanel : public Windows
 {
-    protected:
-        std::vector<std::string> packages;
-        bool force_update = false;
-    public:
-        ImportPanel(int width, int height, const std::string title);
-        void addComponent() override;
-        void setPackages(const std::vector<std::string> &pkgs);
-        std::vector<std::string> getPackages() const;
-        bool getUpdate();
-        void setUpdate(bool fu);
-};
+protected:
+    std::vector<std::string> packages;
+    bool force_update = false;
 
+public:
+    ImportPanel(int width, int height, const std::string title);
+    void addComponent() override;
+    void setPackages(const std::vector<std::string> &pkgs);
+    std::vector<std::string> getPackages() const;
+    bool getUpdate();
+    void setUpdate(bool fu);
+};
+class Package;
+// Panel.hpp
 class GraphPanel : public Windows
 {
-    private:
-        std::string PANELTYPE;
-        ImVec2 pan_offset = ImVec2(0.0f, 0.0f);
-        float zoom_level = 1.0f;
-        std::vector<std::string> packages;
-        std::vector<Node> nodes;
-        std::vector<ImVec2> node_positions;
-        int lastUpdatedNodesSize = 0;
-        bool isNodeRepeated(const std::string &node_name);
+private:
+    std::string PANELTYPE;
+    ImVec2 pan_offset = ImVec2(0.0f, 0.0f);
+    float zoom_level = 1.0f;
+    std::vector<std::string> packages;
+    std::vector<std::unique_ptr<Node>> nodes;
+    std::vector<ImVec2> node_positions;
+    int lastUpdatedNodesSize = 0;
+    bool isNodeRepeated(const std::string &node_name);
 
-        // Per-frame global pin lists, rebuilt each frame by addComponent()
-        std::vector<Pins *> all_input_pins;
-        std::vector<Pins *> all_output_pins;
+    std::vector<Pins*> all_input_pins;
+    std::vector<Pins*> all_output_pins;
+    Node* ExecuteNode = nullptr;
+    Package* packageManager = nullptr;
 
-    public:
-        GraphPanel(int width, int height, const std::string title, const std::string paneltype);
-        void addComponent() override;
-        void setPackages(const std::vector<std::string> &pkgs);
-        void GraphContextMenu();
+public:
+    GraphPanel(int width, int height, const std::string title, const std::string paneltype);
+    void addComponent() override;
+    void setPackages(const std::vector<std::string> &pkgs);
+    void GraphContextMenu();
+    void SetPackageManager(Package *pkg) { packageManager = pkg; }
 };
 
 #endif

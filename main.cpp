@@ -8,8 +8,6 @@
 #include "bridge/Package.hpp"
 #include "Panel/Panel.hpp"
 
-PythonRuntime pythonruntime;
-
 class PanelManager
 {
 private:
@@ -22,7 +20,11 @@ private:
     bool requested = false;
 
 public:
-    PanelManager() : terminal(600, 400, "Terminal"), import_panel(600, 400, "Import"), import_graph_panel(600, 400, "Import Graph","Import"), packageManager(pythonruntime), runtime_graph_panel(600, 400, "Runtime","Runtime") {}
+    PanelManager(PythonRuntime &pythonruntime) : terminal(600, 400, "Terminal"), import_panel(600, 400, "Import"), import_graph_panel(600, 400, "Import Graph", "Import"), packageManager(pythonruntime), runtime_graph_panel(600, 400, "Runtime", "Runtime")
+    {
+        import_graph_panel.SetPackageManager(&packageManager);
+        runtime_graph_panel.SetPackageManager(&packageManager);
+    }
     void run_panels()
     {
         terminal.run();
@@ -55,7 +57,7 @@ public:
 };
 
 // main program
-void main_program()
+void main_program(PythonRuntime &pythonruntime)
 {
     glfwInit();
 
@@ -83,7 +85,7 @@ void main_program()
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 130");
 
-    PanelManager panelmanager = PanelManager();
+    PanelManager panelmanager = PanelManager(pythonruntime);
 
     while (!glfwWindowShouldClose(window))
     {
@@ -121,6 +123,8 @@ void main_program()
 
 int main()
 {
-    main_program();
+    PythonRuntime pythonruntime;
+    printf("GIL state after PythonRuntime init: %s\n", PyGILState_Check() ? "HELD (bad)" : "RELEASED (good)");
+    main_program(pythonruntime);
     return 0;
 }

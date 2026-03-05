@@ -14,6 +14,7 @@ public:
 
 private:
     std::unique_ptr<py::scoped_interpreter> interpreter;
+    std::unique_ptr<py::gil_scoped_release> gil_release;
 };
 
 #endif

@@ -25,7 +25,7 @@ public:
     void UpdateEndPosition(ImVec2 pos) { end_position = pos; }
     ImVec2 getEndPosition() const { return end_position; }
 };
-
+class Node;
 class Pins
 {
 private:
@@ -34,6 +34,7 @@ private:
     link *_link;
     bool isBegienDrag = false;
     float radius = 5.0f;
+    Node *owner_node = nullptr;
     Pins *connected_pin = nullptr;
     bool isInput = false;
 
@@ -48,7 +49,8 @@ public:
 
     // candidate_pins: ALL pins of the OPPOSITE type from ALL nodes in the scene
     void ConnectTOClosestSTypePin(ImDrawList *draw_list, std::vector<Pins *> &candidate_pins);
-
+    Node *GetOwner() { return owner_node; }
+    void SetOwner(Node *n) { owner_node = n; }
     void SetConnectionPin(Pins *pin) { connected_pin = pin; }
     Pins *GetConnectionPin() const { return connected_pin; }
     bool IsDragging() const { return isBegienDrag; }
@@ -77,14 +79,8 @@ private:
 
 public:
     Node(std::string node, ImVec2 size);
-
-    // Register pointers to this node's pins into the global lists.
-    // Call this once per frame BEFORE all SpawnNode calls so positions are fresh.
     void RegisterPins(std::vector<Pins *> &all_input_pins, std::vector<Pins *> &all_output_pins);
-
-    // all_input_pins / all_output_pins = global lists built by RegisterPins across ALL nodes.
-    // Output pins search all_input_pins, input pins search all_output_pins.
-    void SpawnNode(ImDrawList *draw_list, ImVec2 canvas_origin, ImVec2 local_pos, ImVec2 pan_offset,std::vector<Pins *> &all_input_pins,std::vector<Pins *> &all_output_pins);
+    void SpawnNode(ImDrawList *draw_list, ImVec2 canvas_origin, ImVec2 local_pos, ImVec2 pan_offset, std::vector<Pins *> &all_input_pins, std::vector<Pins *> &all_output_pins);
 
     bool isSelected() const { return selected; }
     void setSelected(bool sel) { selected = sel; }
@@ -92,6 +88,18 @@ public:
     bool isActive() const { return active; }
     void setSPECIALNODE(bool special) { isSPECIALNODE = special; }
     bool isSPECIAL() const { return isSPECIALNODE; }
+    Pins *GetOutputPin(int index)
+    {
+        if (index < 0 || index >= (int)output_data.pins.size())
+            return nullptr;
+        return &output_data.pins[index];
+    }
+    Pins *GetInputPin(int index)
+    {
+        if (index < 0 || index >= (int)input_data.pins.size())
+            return nullptr;
+        return &input_data.pins[index];
+    }
 };
 
 #endif

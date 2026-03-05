@@ -24,6 +24,7 @@ class Package
         std::queue<std::string> errors;
         std::queue<std::string> warnings;
         std::queue<std::string> outputs;
+        void import_module(const std::string &pkg);
     
     private:
         void save_installed_packages();
@@ -31,7 +32,7 @@ class Package
         std::atomic<bool> ready{false};
         std::mutex mtx;
         PythonRuntime &pythonruntime;
-        void import_module(const std::vector<std::string> &packages);
+        
 };
 
 #endif

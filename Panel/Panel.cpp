@@ -1,6 +1,6 @@
 #include "Panel.hpp"
+#include "../bridge/Package.hpp"
 #pragma region Windows Implementation
-// Base window runner to centralize ImGui Begin/End logic.
 void Windows::run()
 {
     ImGui::SetNextWindowSize(ImVec2(width, height), ImGuiCond_Once);
@@ -11,7 +11,6 @@ void Windows::run()
 #pragma endregion
 
 #pragma region Terminal Implementations
-// Terminal class implementation
 Terminal::Terminal(int width, int height, const std::string title) : Windows(width, height, title) {}
 
 void Terminal::exec_cmd(const std::string &cmd)
@@ -52,7 +51,7 @@ void Terminal::addComponent()
         {
             ImGui::PushStyleColor(ImGuiCol_Text, terminal_color.t_red());
         }
-        else if (line.find("[WARNING]") != std::string::npos ||line.find("[WARN]") != std::string::npos)
+        else if (line.find("[WARNING]") != std::string::npos || line.find("[WARN]") != std::string::npos)
         {
             ImGui::PushStyleColor(ImGuiCol_Text, terminal_color.t_yellow());
         }
@@ -164,7 +163,6 @@ void Terminal::UpdateTerminal()
 #pragma endregion
 
 #pragma region Import Implementations
-// ImportPanel class implementation
 ImportPanel::ImportPanel(int width, int height, const std::string title) : Windows(width, height, title) {}
 
 void ImportPanel::addComponent()
@@ -220,24 +218,28 @@ void ImportPanel::setUpdate(bool fu)
 #pragma endregion
 
 #pragma region Graph Implementations
-// Graph class implementation
-GraphPanel::GraphPanel(int width, int height, const std::string title, const std::string paneltype) : Windows(width, height, title), PANELTYPE(paneltype)
+GraphPanel::GraphPanel(int width, int height, const std::string title, const std::string paneltype)
+    : Windows(width, height, title), PANELTYPE(paneltype)
 {
     if (PANELTYPE == "Import")
+
     {
-        Node import_node("Import Node", ImVec2(100.0f, 50.0f));
-        import_node.setSPECIALNODE(true);
-        nodes.push_back(import_node);
-        node_positions.push_back(ImVec2(50.0f, 50.0f));
-        lastUpdatedNodesSize = (int)nodes.size();
-    }
-    if (PANELTYPE == "Runtime")
-    {
-        // TODO: Add runtime specific nodes
+        if (ExecuteNode == nullptr)
+        {
+            nodes.push_back(std::make_unique<Node>("Import Node", ImVec2(100.0f, 50.0f)));
+            ExecuteNode = nodes.back().get(); 
+            ExecuteNode->setSPECIALNODE(true);
+            node_positions.push_back(ImVec2(50.0f, 50.0f));
+            lastUpdatedNodesSize = (int)nodes.size();
+            EWL::Get().AddLog("Special node created.");
+        }
+        else
+        {
+            EWL::Get().AddWarning("Special node already exists.");
+        }
     }
 }
 
-// Helper function for node positioning on spawn
 ImVec2 GetPositionWithMouseInput(ImVec2 pan_offset)
 {
     ImVec2 mouse = ImGui::GetMousePos();
@@ -245,9 +247,92 @@ ImVec2 GetPositionWithMouseInput(ImVec2 pan_offset)
     ImVec2 local_pos = ImVec2(mouse.x - _origin.x - pan_offset.x, mouse.y - _origin.y - pan_offset.y);
     return local_pos;
 }
+bool RoundButton(const char *id, float radius, ImU32 color)
+{
+    ImVec2 pos = ImGui::GetCursorScreenPos();
+    ImDrawList *draw_list = ImGui::GetWindowDrawList();
 
+    ImGui::InvisibleButton(id, ImVec2(radius * 2, radius * 2));
+    bool clicked = ImGui::IsItemClicked();
+
+    draw_list->AddCircleFilled(
+        ImVec2(pos.x + radius, pos.y + radius),
+        radius,
+        color,
+        32);
+
+    return clicked;
+}
 void GraphPanel::addComponent()
 {
+    float buttonRadius = 10.0f;
+
+    float windowWidth = ImGui::GetContentRegionAvail().x;
+
+    ImGui::SetCursorPosX(windowWidth - buttonRadius * 2 - 10.0f);
+    ImGui::SetCursorPosY(5.0f);
+
+    ImGui::PushID("PlayButton");
+
+    if (RoundButton("##play", buttonRadius, IM_COL32(80, 200, 120, 255)))
+    {
+        EWL::Get().AddLog("Graph execution started in panel : " + PANELTYPE);
+
+        Node *current_Node = ExecuteNode;
+        std::unordered_set<Node *> visited;
+
+        while (current_Node)
+        {
+            if (visited.count(current_Node))
+            {
+                EWL::Get().AddError("Cycle detected! Execution stopped.");
+                break;
+            }
+            visited.insert(current_Node);
+
+            EWL::Get().AddLog("Executing node: " + current_Node->getName());
+
+            if (!current_Node->isSPECIAL() && current_Node->getName() != "Import Node")
+            {
+                std::string moduleName = current_Node->getName();
+                EWL::Get().AddLog("Importing module: " + moduleName);
+
+                if (!packageManager)
+                {
+                    EWL::Get().AddError("PackageManager is NULL!");
+                    break;
+                }
+
+                packageManager->import_module(moduleName);
+            }
+
+            Pins *outPin = current_Node->GetOutputPin(0);
+            if (!outPin)
+            {
+                EWL::Get().AddWarning("No output pin found. Execution stopped.");
+                break;
+            }
+
+            Pins *connected = outPin->GetConnectionPin();
+            if (!connected)
+            {
+                EWL::Get().AddLog("End of chain reached. Execution complete.");
+                break;
+            }
+
+            Node *nextNode = connected->GetOwner();
+            if (!nextNode)
+            {
+                EWL::Get().AddWarning("Connected pin has no owner node.");
+                break;
+            }
+
+            current_Node = nextNode;
+        }
+
+        EWL::Get().AddLog("Execution finished.");
+    }
+    ImGui::PopID();
     ImVec2 canvas_size = ImGui::GetContentRegionAvail();
     ImGui::BeginChild("GraphCanvas", canvas_size, true, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
@@ -260,17 +345,14 @@ void GraphPanel::addComponent()
     ImDrawList *draw_list = ImGui::GetWindowDrawList();
     ImVec2 origin = ImGui::GetCursorScreenPos();
 
-    // Draw background
     draw_list->AddRectFilled(origin, ImVec2(origin.x + canvas_size.x, origin.y + canvas_size.y), IM_COL32(50, 50, 50, 255));
 
-    // Draw grid
     const float GRID_SIZE = 40.0f;
     for (float x = fmodf(pan_offset.x, GRID_SIZE); x < canvas_size.x; x += GRID_SIZE)
         draw_list->AddLine(ImVec2(origin.x + x, origin.y), ImVec2(origin.x + x, origin.y + canvas_size.y), IM_COL32(60, 60, 60, 255));
     for (float y = fmodf(pan_offset.y, GRID_SIZE); y < canvas_size.y; y += GRID_SIZE)
         draw_list->AddLine(ImVec2(origin.x, origin.y + y), ImVec2(origin.x + canvas_size.x, origin.y + y), IM_COL32(60, 60, 60, 255));
 
-    // Assign a spawn position when a new node is added
     if ((int)nodes.size() != lastUpdatedNodesSize)
     {
         ImVec2 local_pos = GetPositionWithMouseInput(pan_offset);
@@ -280,34 +362,28 @@ void GraphPanel::addComponent()
 
     if (!nodes.empty())
     {
-        // --- PASS 1: Register all pins from every node into the global lists ---
-        // This must happen before any SpawnNode call so every pin pointer is available
-        // for cross-node connection checks, regardless of node render order.
         all_input_pins.clear();
         all_output_pins.clear();
         for (auto &node : nodes)
-            node.RegisterPins(all_input_pins, all_output_pins);
+            node->RegisterPins(all_input_pins, all_output_pins); 
 
-        // --- PASS 2: Spawn / render all nodes, passing the global pin lists ---
         for (int i = 0; i < (int)nodes.size(); i++)
         {
-            // Drag selected node
-            if (nodes[i].isSelected() && ImGui::IsMouseDragging(ImGuiMouseButton_Left) && nodes[i].isActive())
+            if (nodes[i]->isSelected() && ImGui::IsMouseDragging(ImGuiMouseButton_Left) && nodes[i]->isActive())
             {
                 ImVec2 delta = ImGui::GetIO().MouseDelta;
                 node_positions[i].x += delta.x;
                 node_positions[i].y += delta.y;
             }
 
-            nodes[i].SpawnNode(draw_list, origin, node_positions[i], pan_offset,
-                               all_input_pins, all_output_pins);
+            nodes[i]->SpawnNode(draw_list, origin, node_positions[i], pan_offset,
+                                all_input_pins, all_output_pins); // ✅ ->
 
-            // Delete selected node with Delete key
-            if (nodes[i].isSelected() && ImGui::IsKeyPressed(ImGuiKey_Delete))
+            if (nodes[i]->isSelected() && ImGui::IsKeyPressed(ImGuiKey_Delete))
             {
-                if (nodes[i].isSPECIAL())
+                if (nodes[i]->isSPECIAL())
                 {
-                    EWL::Get().AddWarning("Cannot delete special node: " + nodes[i].getName());
+                    EWL::Get().AddWarning("Cannot delete special node: " + nodes[i]->getName());
                     break;
                 }
                 nodes.erase(nodes.begin() + i);
@@ -318,7 +394,6 @@ void GraphPanel::addComponent()
         }
     }
 
-    // Pan with middle mouse
     if (ImGui::IsWindowHovered() && ImGui::IsMouseDragging(ImGuiMouseButton_Middle))
     {
         ImVec2 delta = ImGui::GetIO().MouseDelta;
@@ -373,20 +448,17 @@ void GraphPanel::GraphContextMenu()
     if (spawn_node && !s_pkg.empty() && !isNodeRepeated(s_pkg))
     {
         Node node(s_pkg, ImVec2(100.0f, 50.0f));
-        nodes.push_back(node);
-        // Note: node_positions entry added next frame in addComponent() via size mismatch check
+        nodes.push_back(std::make_unique<Node>(s_pkg, ImVec2(100.0f, 50.0f)));
     }
 }
-
 bool GraphPanel::isNodeRepeated(const std::string &node_name)
 {
-    if (nodes.empty())
-        return false;
+    if (nodes.empty()) return false;
     for (const auto &node : nodes)
     {
-        if (node.getName() == node_name && PANELTYPE == "Import")
+        if (node->getName() == node_name && PANELTYPE == "Import") 
         {
-            EWL::Get().AddWarning("Node " + node_name + " already exists! cannot add duplicate nodes.");
+            EWL::Get().AddWarning("Node " + node_name + " already exists!");
             return true;
         }
     }
